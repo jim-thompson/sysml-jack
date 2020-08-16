@@ -15,6 +15,7 @@ TOKEN: { <T_COMMENT: "/*" > : IN_COMMENT }
 TOKEN : /* Keywords */
 {
   <K_ABOUT : "about">
+| <K_ABSTRACT: "abstract">
 | <K_ALIAS : "alias">
 | <K_AS : "as">
 | <K_ATTRIBUTE: "attribute">
@@ -30,43 +31,33 @@ TOKEN : /* Keywords */
 | <K_PRIVATE : "private">
 | <K_PUBLIC: "public">
 | <K_QUIT: "quit">
+| <K_REDEFINES: "redefines">
 | <K_REF: "ref">
+| <K_SPECIALIZES: "specializes">
+| <K_SUBSETS: "subsets">
 | <K_TYPE: "type">
 | <K_VALUE: "value">
 }
 
-TOKEN : /* Operators */
-{
-  <O_COLON : ":">
-| <O_SCOPE : "::">
-| <O_SPLAT : "*">
+TOKEN : /* Operators */ {
+  <O_COLON: ":"> | <O_COMMA: ","> | <O_SCOPE: "::"> | <O_SPLAT: "*"> | <O_SPECIALIZES: ":>"> |
+  <O_LBRACKET: "["> | <O_RBRACKET: "]"> | <O_TO: ".."> | <O_REDEFINES: ":>>">
 }
 
-TOKEN :
-{
-  < T_LBRACE: "{" >
-| < T_RBRACE: "}" >
-}
+TOKEN: { <T_LBRACE: "{"> | < T_RBRACE: "}" > }
+TOKEN: { <T_IDENTIFIER: <T_SPACE_IDENTIFIER> | <T_NONSPACE_IDENTIFIER>> }
+TOKEN: { <T_SCOPED_IDENTIFIER: <T_IDENTIFIER > (<O_SCOPE> <T_IDENTIFIER >)* > }
+TOKEN: { <T_SPACE_IDENTIFIER: "'" <LETTER> (<LETTER> | <DIGIT> | " ")* "'"> }
 
-TOKEN : {
-  <T_IDENTIFIER: <T_SPACE_IDENTIFIER> | <T_NONSPACE_IDENTIFIER>>
-}
-
-TOKEN : {
+TOKEN: {
   <T_NONSPACE_IDENTIFIER: <LETTER> (<LETTER> | <DIGIT>)*>
 | <#LETTER: ["$","A"-"Z","_","a"-"z"]>
 | <#DIGIT: ["0"-"9"]>
 }
 
-TOKEN : {
-  <T_SCOPED_IDENTIFIER: < T_IDENTIFIER > (<O_SCOPE> < T_IDENTIFIER >)* >	
-}
+TOKEN: { <T_ORDINAL: (<DIGIT>)+> }
 
-TOKEN : {
-  <T_SPACE_IDENTIFIER: "'" <LETTER> (<LETTER> | <DIGIT> | " ")* "'">
-}
-
-void doc_comment(): { }
+void doc_comment(): {}
 {
   <T_COMMENT> {  System.out.println("Scanned a doc comment"); }
 }
@@ -81,7 +72,7 @@ void comment_about(): {}
   <K_COMMENT> <K_ABOUT> <T_IDENTIFIER> doc_comment()
 }
 
-void maybe_scoped_id() : { }
+void maybe_scoped_id() : {}
 {
   <T_IDENTIFIER>
 | <T_SCOPED_IDENTIFIER >
@@ -94,18 +85,22 @@ void alias(): {}
 
 void block(): {}
 {
-  <K_BLOCK>
-| <K_PART> <K_DEF>
+  (<K_ABSTRACT>)? (<K_BLOCK> | <K_PART> <K_DEF>)
+}
+
+void specializes(): {}
+{
+  <K_SPECIALIZES> | <O_SPECIALIZES>
 }
 
 void block_decl(): {}
 {
-  block() <T_IDENTIFIER> ";"
+  block() <T_IDENTIFIER> (specializes() maybe_scoped_id() (<O_COMMA> maybe_scoped_id())*)? ";"
 }
 
 void block_def(): {}
 {
-  block() <T_IDENTIFIER > "{" (block_inners())* "}"
+  block() <T_IDENTIFIER> (specializes() maybe_scoped_id() (<O_COMMA> maybe_scoped_id())*)? "{" (block_inners())* "}"
 }
 
 void block_inners(): {} {
@@ -114,8 +109,37 @@ void block_inners(): {} {
 | value_decl()
 }
 
+void multiplicity(): {}
+{
+LOOKAHEAD(3)
+  "[" (<T_ORDINAL> | <O_SPLAT>) "]"
+| "[" <T_ORDINAL> <O_TO> (<T_ORDINAL> | <O_SPLAT>)"]"
+}
+
+void subsets(): {}
+{
+  (<K_SUBSETS> | <O_SPECIALIZES>)
+}
+
+void subsets_id(): {}
+{
+   subsets() maybe_scoped_id()
+}
+
+void redefines(): {}
+{
+  (<K_REDEFINES> | <O_REDEFINES>) 
+}
+
+void redefines_id(): {}
+{
+  redefines() <T_IDENTIFIER>
+}
+
 void part_decl(): {} {
-  (<K_REF>)? <K_PART> <T_IDENTIFIER> ":" maybe_scoped_id() ";"
+LOOKAHEAD(2)
+  (<K_REF>)? <K_PART> <T_IDENTIFIER> ":" maybe_scoped_id() (multiplicity())? (subsets_id() | redefines_id())? ";"
+| (<K_REF>)? <K_PART> (subsets() | redefines())? <T_IDENTIFIER> (multiplicity())?  ";"
 }
 
 void class_decl(): {} {
@@ -202,7 +226,7 @@ void packageable_decl(): {}
 void one_line(): {}
 {
   ";" {  System.out.println("That was an empty line!"); }
-| LOOKAHEAD(4) block_def() { report("block definition"); }
+| LOOKAHEAD(8) block_def() { report("block definition"); }
 | LOOKAHEAD(2) block_decl() { report("block declaration"); }
 | alias() {  report("alias"); }
 | LOOKAHEAD(2) value_decl() { report("value declaration"); }

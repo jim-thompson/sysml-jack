@@ -15,6 +15,10 @@ public class Test
 		do_file("test/test-02-package-with-visibility.fooml");
 		do_file("test/test-03-package-with-comments.fooml");
 		do_file("test/test-04-block.fooml");
+		do_file("test/test-05-gen-spec.fooml");
+		do_file("test/test-06-subsetting.fooml");
+		do_file("test/test-07-redefinition.fooml");
+		do_file("test/test-08-parts-1.fooml");
 		do_file("-");
 	}
 	
