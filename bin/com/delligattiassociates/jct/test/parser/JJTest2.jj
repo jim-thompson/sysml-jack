@@ -1,0 +1,206 @@
+/**
+ * JavaCC template file created by SF JavaCC plugin 1.5.28+ wizard for JavaCC 1.5.0+
+ */options{  static = false;}PARSER_BEGIN(JJTest2)package com.delligattiassociates.jct.test.parser;
+
+public class JJTest2{
+  void report(String s)
+  {	System.out.printf("Parsed <%s>.\n", s);
+  }}PARSER_END(JJTest2)SKIP :
+{
+  " "
+| "\r"
+| "\t"
+| "\n"
+|
+  "//" : IN_LINE_COMMENT
+}
+
+TOKEN:
+{
+  <T_COMMENT: "/*" > : IN_COMMENT
+}
+
+<IN_LINE_COMMENT> SKIP:
+{
+   "\n" : DEFAULT
+}
+
+<IN_LINE_COMMENT> MORE:
+{
+  < ~[] >
+}
+
+<IN_COMMENT> SKIP:
+{
+   "*/" : DEFAULT
+}
+
+<IN_COMMENT> MORE:
+{
+  < ~[] >
+}
+
+TOKEN : /* Keywords */
+{
+  <K_NAMESPACE : "namespace">
+| <K_PACKAGE : "package">
+| <K_COMMENT : "comment">
+| <K_ABOUT : "about">
+| <K_IMPORT : "import">
+| <K_BLOCK : "block">
+| <K_ALIAS : "alias">
+| <K_AS : "as">
+| <K_FEATURE : "feature">
+| <K_CLASS : "class">
+| <K_PRIVATE : "private">
+| <K_PUBLIC: "public">
+| <K_QUIT : "quit">
+}
+
+TOKEN : /* Operators */
+{
+  <O_COLON : ":">
+| <O_SCOPE : "::">
+| <O_SPLAT : "*">
+}
+
+TOKEN :
+{
+  < T_LBRACE: "{" >
+| < T_RBRACE: "}" >
+}
+
+TOKEN : {
+  <T_IDENTIFIER: <T_SPACE_IDENTIFIER> | <T_NONSPACE_IDENTIFIER>>
+}
+
+TOKEN : {
+  <T_NONSPACE_IDENTIFIER: <LETTER> (<LETTER> | <DIGIT>)*>
+| <#LETTER: ["$","A"-"Z","_","a"-"z"]>
+| <#DIGIT: ["0"-"9"]>
+}
+
+TOKEN : {
+  <T_SCOPED_IDENTIFIER: < T_IDENTIFIER > (<O_SCOPE> < T_IDENTIFIER >)* >	
+}
+
+TOKEN : {
+  <T_SPACE_IDENTIFIER: "'" <LETTER> (<LETTER> | <DIGIT> | " ")* "'">
+}
+
+void doc_comment(): { }
+{
+  <T_COMMENT> {  System.out.println("Scanned a doc comment"); }
+}
+
+void named_comment(): {}
+{
+  <K_COMMENT> <T_IDENTIFIER> doc_comment() { System.out.println("Scanned a named comment"); } 
+}
+
+void comment_about(): {}
+{
+  <K_COMMENT> <K_ABOUT> <T_IDENTIFIER> doc_comment()
+}
+
+void maybe_scoped_id() : { }
+{
+  < T_IDENTIFIER >
+| < T_SCOPED_IDENTIFIER >
+}
+
+void alias(): {}
+{
+  <K_ALIAS> maybe_scoped_id() <K_AS> <T_IDENTIFIER> ";"
+}
+
+void block(): {}
+{
+  <K_BLOCK> <T_IDENTIFIER> ";"
+}
+
+void class_(): {}
+{
+  <K_CLASS> <T_IDENTIFIER> "{" "}" ";"
+}
+
+void import_() :
+{}
+{
+  LOOKAHEAD(3) <K_IMPORT> maybe_scoped_id() ";"
+| LOOKAHEAD(3) <K_IMPORT> maybe_scoped_id() <K_AS> <T_IDENTIFIER> ";"
+| <K_IMPORT> maybe_scoped_id() <O_SCOPE> <O_SPLAT> ";"
+}
+
+void feature() : {}
+{
+  <K_FEATURE> <T_IDENTIFIER> <O_COLON> <T_IDENTIFIER> ";"
+}
+
+void namespace() :
+{}
+{
+  <K_NAMESPACE> <T_IDENTIFIER> "{" lines() "}" ";"
+}
+
+void visibility(): {}
+{
+  <K_PUBLIC> | <K_PRIVATE>
+}
+
+void null_statement() : {}
+{
+  ";"
+}
+
+void lines() : {}
+{
+  (one_line())*
+}
+
+void package_() : { }
+{
+  <K_PACKAGE> <T_IDENTIFIER> "{" (packageable_expr())* "}"
+}
+
+void packageable_expr(): {}
+{
+  (visibility())? packageable_decl()
+}
+
+void packageable_decl(): {}
+{
+  doc_comment()
+| LOOKAHEAD(2) named_comment()
+| comment_about()
+| import_()
+| block()
+| alias()
+}
+
+void one_line() :
+{}
+{
+  doc_comment()
+| LOOKAHEAD(2) named_comment()
+| comment_about() { report("about comment"); }
+| namespace() { report("namespace"); }
+| alias() {  report("alias"); }
+| block() {  report("block"); }
+| package_() { report("package"); }
+| import_() { report("import"); }
+| class_() {  report("class"); }
+| feature() { report("feature"); }
+| ";" {  System.out.println("That was an empty line!"); }
+}
+
+void end() : { }
+{
+  <EOF> | <K_QUIT>
+}
+
+void file() :
+{}
+{
+  (one_line())* end()
+}
