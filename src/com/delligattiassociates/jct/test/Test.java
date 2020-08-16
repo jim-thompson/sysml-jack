@@ -11,9 +11,10 @@ public class Test
 	public static void main(String args []) throws ParseException
 	{
 	    System.out.println("Working Directory = " + System.getProperty("user.dir"));
-		do_file("test-01-package.fooml");
-		do_file("test-02-package-with-visibility.fooml");
-		do_file("test-03-package-with-comments.fooml");
+		do_file("test/test-01-package.fooml");
+		do_file("test/test-02-package-with-visibility.fooml");
+		do_file("test/test-03-package-with-comments.fooml");
+		do_file("test/test-04-block.fooml");
 		do_file("-");
 	}
 	
